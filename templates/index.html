@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>VidhiAI - Environmental Law Assistant</title>
+    <!-- Bootstrap CSS from CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+    <style>
+        /* Minimal inline styles for basic layout and readability */
+        body { padding-top: 20px; padding-bottom: 20px; background-color: #f8f9fa;}
+        .container { max-width: 900px; }
+        .result-card { margin-bottom: 1.5rem; padding: 1.5rem; border: 1px solid #dee2e6; border-radius: .25rem; background-color: #fff; }
+        .result-card h5 { color: #0d6efd; } /* Bootstrap primary blue */
+        .result-card h6 strong { color: #198754; } /* Bootstrap success green */
+        .error-box { border-left: 5px solid #dc3545; padding: 10px; margin-bottom:1rem; background-color: #f8d7da; color: #721c24;}
+        .warning-box { border-left: 5px solid #ffc107; padding: 10px; margin-bottom:1rem; background-color: #fff3cd; color: #856404;}
+        .disclaimer { font-size: 0.9em; color: #6c757d; margin-top: 2rem; }
+        .source-badge { font-size: 0.8em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="text-center mb-4">
+            <h1>VidhiAI <small class="text-muted fs-5">Environmental Law Assistant</small></h1>
+        </header>
+
+        {% if not spacy_model_loaded %}
+        <div class="alert alert-warning warning-box" role="alert"> {# Using Bootstrap alert classes #}
+          <strong>NLP Model Issue:</strong> spaCy English model ('en_core_web_sm') could not be loaded. Text processing might be affected. Please ensure it's downloaded (run <code>python -m spacy download en_core_web_sm</code> from your activated venv) and restart.
+        </div>
+        {% endif %}
+
+        <section class="mb-4">
+            <form action="{{ url_for('analyze') }}" method="post">
+                <div class="mb-3">
+                    <label for="case_summary_input_field" class="form-label"><strong>Enter Case Summary (Environmental Focus):</strong></label>
+                    <textarea class="form-control" id="case_summary_input_field" name="case_summary_input" rows="8" required placeholder="Describe the environmental issue...">{{ analysis.input_summary if analysis and analysis.input_summary else '' }}</textarea>
+                </div>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary btn-lg">Analyze Case</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Results Section: Visibility controlled by Jinja -->
+        {% if show_results %}
+        <section id="resultsSection" class="mt-4 pt-3 border-top">
+            <h2 class="text-center mb-4">Analysis Results</h2>
+
+            {% if analysis.error %}
+            <div class="alert alert-danger error-box" role="alert"> {# Using Bootstrap alert classes #}
+              <strong>Input Error:</strong> {{ analysis.error }}
+            </div>
+            {% endif %}
+
+            {% if analysis.spacy_error %}
+            <div class="alert alert-warning warning-box" role="alert">
+              <strong>Processing Warning:</strong> {{ analysis.spacy_error }}
+            </div>
+            {% endif %}
+
+            <!-- Laws Section -->
+            {% if analysis.laws %}
+            <div class="mb-4">
+                <h4>Potentially Applicable Environmental Laws</h4>
+                {% for law in analysis.laws %}
+                <div class="result-card law-card">
+                    <h5><strong>{{ law.section_ref }}:</strong> {{ law.title }}</h5>
+                    <p><small><strong>Summary:</strong> {{ law.summary }}</small></p>
+                    {% if law.matched_keywords %}
+                        <p><small><em>Matched Keywords: {{ law.matched_keywords | join(', ') }}</em></small></p>
+                    {% endif %}
+                    {% if law.url %}
+                        <a href="{{ law.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">Read More</a>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% elif not analysis.error and not analysis.spacy_error and analysis.input_summary %} {# Only show if summary was provided and no other errors #}
+            <div class="mb-4">
+                <h4>Potentially Applicable Environmental Laws</h4>
+                <p class="text-muted">Please be more specific with your Case Summary!</p>
+            </div>
+            {% endif %}
+
+            <!-- Precedents Section -->
+            {% if analysis.precedents %}
+            <div class="mb-4">
+                <h4>Potentially Relevant Precedents (Local Database)</h4>
+                 {% for prec in analysis.precedents %}
+                <div class="result-card precedent-card">
+                    <h6>
+                        <strong>{{ prec.citation | default('N/A', true) }}</strong>
+                        {% if prec.score is defined %}
+                            <span class="badge bg-light text-dark source-badge ms-1">Match: {{ prec.score }}</span>
+                        {% endif %}
+                        {% if prec.source %}
+                        <span class="badge bg-info text-dark source-badge ms-1">{{ prec.source }}</span>
+                        {% endif %}
+                    </h6>
+                    <p><small>{{ prec.summary | default('Summary not provided.', true) }}</small></p>
+                    {% if prec.url %}
+                         <a href="{{ prec.url }}" target="_blank" class="btn btn-sm btn-outline-success">Read Case</a>
+                    {% else %}
+                         <span class="text-muted"><small>Link not available</small></span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% elif not analysis.error and not analysis.spacy_error and analysis.input_summary %} {# Only show if summary was provided and no other errors #}
+            <div class="mb-4">
+                <h4>Potentially Relevant Precedents (Local Database)</h4>
+                <p class="text-muted">No relevant precedents found in the local database for this query.</p>
+            </div>
+            {% endif %}
+            {# Advisory Conclusion Section is REMOVED #}
+            <p class="disclaimer text-center">
+                <strong>Disclaimer:</strong> VidhiAI provides information for research purposes only and is not a substitute for professional legal advice. Verify all information.
+            </p>
+        </section>
+        {% elif show_results %} {# This handles if show_results is true but 'analysis' object might be None/empty #}
+        <section id="resultsSection" class="mt-4 pt-3 border-top">
+            <h2 class="text-center mb-4">Analysis Results</h2>
+            <p class="text-muted">Could not perform analysis or no input provided. Please ensure valid input and check system configuration.</p>
+            <p class="disclaimer text-center">
+                <strong>Disclaimer:</strong> VidhiAI provides information for research purposes only...
+            </p>
+        </section>
+        {% endif %} {# End of if show_results #}
+
+    </div> <!-- End of container -->
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+    <!-- No custom JavaScript for showing/hiding results needed here, Jinja handles it -->
+</body>
+</html>
