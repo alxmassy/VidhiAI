@@ -14,5 +14,5 @@ VidhiAI is a prototype web application designed to assist legal professionals by
 *   **Data:** JSON files for laws and precedents
 *   **Frontend:** HTML, CSS (Bootstrap 5)
 
-## Video Demo 
+## Click for Video Demo 
 [![Watch the Demo](https://img.youtube.com/vi/FTjgbdYyV84/hqdefault.jpg)](https://www.youtube.com/watch?v=FTjgbdYyV84)
