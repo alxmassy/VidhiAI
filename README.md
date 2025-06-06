@@ -1,5 +1,7 @@
 # VidhiAI - AI-Powered Law Assistant
 
+[![Watch the Demo](https://img.youtube.com/vi/FTjgbdYyV84/hqdefault.jpg)](https://www.youtube.com/watch?v=FTjgbdYyV84)
+
 VidhiAI is a prototype web application designed to assist legal professionals by analyzing case summaries related to Indian environmental law and suggesting potentially applicable laws and relevant precedents.
 
 ## Features
